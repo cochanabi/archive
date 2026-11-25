@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#87999a">
+  <title>アーカイブサイト</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f4f2ec;
+      --ink: #242a25;
+      --muted: #777970;
+      --line: #d7d5cc;
+      --accent: #536657;
+      --serif: "Yu Mincho", "Hiragino Mincho ProN", "Noto Serif JP", serif;
+      --sans: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      position: relative;
+      background: #87999a;
+      color: var(--ink);
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #rain {
+      position: fixed;
+      z-index: 0;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      opacity: .72;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      width: min(100% - 64px, 1260px);
+      margin: 0 auto;
+    }
+
+    .masthead {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 38px 18px 27px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(244, 242, 236, .78);
+      -webkit-backdrop-filter: blur(5px);
+      backdrop-filter: blur(5px);
+    }
+
+    h1 {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: clamp(2rem, 4vw, 3.25rem);
+      font-weight: 500;
+      letter-spacing: .08em;
+      line-height: 1.15;
+    }
+
+    .count {
+      flex: none;
+      padding-bottom: 5px;
+      color: var(--muted);
+      font-family: Georgia, serif;
+      font-size: .95rem;
+      letter-spacing: .12em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      align-items: start;
+      gap: 48px 25px;
+      padding: 30px 0 72px;
+    }
+
+    .item { min-width: 0; }
+
+    .photo-button {
+      display: block;
+      width: 100%;
+      padding: 8px;
+      overflow: hidden;
+      border: 0;
+      background: transparent;
+      cursor: zoom-in;
+      text-align: left;
+    }
+
+    .photo-button img {
+      display: block;
+      width: 100%;
+      height: auto;
+      transition: transform 450ms cubic-bezier(.2, .65, .3, 1);
+    }
+
+    .photo-button:hover img,
+    .photo-button:focus-visible img { transform: scale(1.025); }
+
+    .photo-button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 4px;
+    }
+
+    .caption {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 13px 10px 4px;
+      border-top: 1px solid var(--line);
+      margin-top: 13px;
+      background: rgba(244, 242, 236, .78);
+      -webkit-backdrop-filter: blur(5px);
+      backdrop-filter: blur(5px);
+    }
+
+    .name {
+      margin: 0;
+      font-family: Georgia, var(--serif);
+      font-size: 1rem;
+      font-weight: 400;
+      letter-spacing: .12em;
+    }
+
+    .words {
+      margin: 0;
+      color: var(--muted);
+      font-family: var(--serif);
+      font-size: .88rem;
+      letter-spacing: .04em;
+      white-space: nowrap;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      padding: 0 10px 10px;
+      margin: 0;
+      list-style: none;
+      background: rgba(244, 242, 236, .78);
+      -webkit-backdrop-filter: blur(5px);
+      backdrop-filter: blur(5px);
+    }
+
+    .tags:empty { display: none; }
+
+    .tag {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 6px;
+      padding: 5px 9px;
+      border: 1px solid var(--line);
+      border-radius: 2px;
+      color: var(--ink);
+      font-size: .76rem;
+      line-height: 1.3;
+    }
+
+    .tag-key { color: var(--muted); }
+
+    footer {
+      height: 20px;
+      border-top: 1px solid var(--line);
+    }
+
+    dialog {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      max-width: none;
+      max-height: none;
+      padding: 56px 24px 24px;
+      border: 0;
+      background: rgba(20, 23, 21, .96);
+      color: white;
+    }
+
+    dialog::backdrop { background: rgba(20, 23, 21, .96); }
+
+    dialog img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .close {
+      position: absolute;
+      top: 13px;
+      right: 18px;
+      display: grid;
+      width: 40px;
+      height: 40px;
+      place-items: center;
+      border: 1px solid rgba(255,255,255,.45);
+      border-radius: 50%;
+      background: transparent;
+      color: white;
+      font: 300 25px/1 var(--sans);
+      cursor: pointer;
+    }
+
+    @media (max-width: 900px) {
+      .page { width: min(100% - 40px, 760px); }
+      .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 38px 20px; }
+    }
+
+    @media (max-width: 560px) {
+      .page { width: calc(100% - 36px); }
+      .masthead { padding: 26px 12px 19px; }
+      h1 { font-size: clamp(1.7rem, 8vw, 2.35rem); }
+      .count { font-size: .8rem; }
+      .gallery { grid-template-columns: 1fr; gap: 34px; padding: 21px 0 48px; }
+      .caption { padding-top: 10px; margin-top: 10px; }
+      dialog { padding: 56px 12px 12px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="rain" aria-hidden="true"></canvas>
+  <main class="page">
+    <header class="masthead">
+      <h1>アーカイブサイト</h1>
+      <div class="count" aria-label="5件">01 — 05</div>
+    </header>
+
+    <section class="gallery" aria-label="写真の一覧">
+      <article class="item" data-record="01">
+        <button class="photo-button" type="button" data-photo="images/01.jpg" aria-label="空に座る の写真を拡大">
+          <img src="images/01.jpg" alt="空に座る" loading="eager" decoding="async">
+        </button>
+        <div class="caption"><h2 class="name">空に座る</h2><p class="words">(ここに言葉)</p></div>
+        <ul class="tags" aria-label="タグ"></ul>
+      </article>
+      <article class="item" data-record="02">
+        <button class="photo-button" type="button" data-photo="images/02.jpg" aria-label="初上陸は都会からや の写真を拡大">
+          <img src="images/02.jpg" alt="初上陸は都会からや" loading="lazy" decoding="async">
+        </button>
+        <div class="caption"><h2 class="name">初上陸は都会からや</h2><p class="words">(ここに言葉)</p></div>
+        <ul class="tags" aria-label="タグ"></ul>
+      </article>
+      <article class="item" data-record="03">
+        <button class="photo-button" type="button" data-photo="images/03.jpg" aria-label="八角すぎやたい の写真を拡大">
+          <img src="images/03.jpg" alt="八角すぎやたい" loading="lazy" decoding="async">
+        </button>
+        <div class="caption"><h2 class="name">八角すぎやたい</h2><p class="words">(ここに言葉)</p></div>
+        <ul class="tags" aria-label="タグ"></ul>
+      </article>
+      <article class="item" data-record="04">
+        <button class="photo-button" type="button" data-photo="images/04.jpg" aria-label="分かりやすく観光地 の写真を拡大">
+          <img src="images/04.jpg" alt="分かりやすく観光地" loading="lazy" decoding="async">
+        </button>
+        <div class="caption"><h2 class="name">分かりやすく観光地</h2><p class="words">(ここに言葉)</p></div>
+        <ul class="tags" aria-label="タグ"></ul>
+      </article>
+      <article class="item" data-record="05">
+        <button class="photo-button" type="button" data-photo="images/05.jpg" aria-label="最高ですミルクティー の写真を拡大">
+          <img src="images/05.jpg" alt="最高ですミルクティー" loading="lazy" decoding="async">
+        </button>
+        <div class="caption"><h2 class="name">最高ですミルクティー</h2><p class="words">(ここに言葉)</p></div>
+        <ul class="tags" aria-label="タグ"></ul>
+      </article>
+    </section>
+    <footer></footer>
+  </main>
+
+  <dialog id="viewer" aria-label="写真">
+    <button class="close" type="button" aria-label="閉じる">×</button>
+    <img id="viewer-image" alt="">
+  </dialog>
+
+  <script>
+    const rainCanvas = document.querySelector('#rain');
+    const rainContext = rainCanvas.getContext('2d');
+    const sceneImage = new Image();
+    sceneImage.src = 'images/window-city.jpg';
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let rainWidth = 0;
+    let rainHeight = 0;
+    let glassDrops = [];
+    let buildings = [];
+    let cityLights = [];
+    let scooterX = -120;
+    let lastFrame = 0;
+
+    function makeGlassDrop(startSpread = false) {
+      const large = Math.random() < .14;
+      const radius = large ? 3.5 + Math.random() * 4.5 : .7 + Math.random() * 2.2;
+      return {
+        x: Math.random() * rainWidth,
+        y: startSpread ? Math.random() * rainHeight : -radius - Math.random() * rainHeight * .2,
+        radius,
+        speed: large ? .22 + Math.random() * .72 : .015 + Math.random() * .12,
+        trail: large ? 18 + Math.random() * 72 : (Math.random() < .1 ? 5 + Math.random() * 15 : 0),
+        drift: (Math.random() - .5) * .12,
+        phase: Math.random() * Math.PI * 2,
+        tall: .82 + Math.random() * .42
+      };
+    }
+
+    function resizeRain() {
+      const ratio = Math.min(window.devicePixelRatio || 1, 2);
+      rainWidth = window.innerWidth;
+      rainHeight = window.innerHeight;
+      rainCanvas.width = Math.round(rainWidth * ratio);
+      rainCanvas.height = Math.round(rainHeight * ratio);
+      rainContext.setTransform(ratio, 0, 0, ratio, 0, 0);
+      scooterX = rainWidth * .18;
+      const amount = Math.min(420, Math.max(100, Math.round(rainWidth * rainHeight / 4500)));
+      glassDrops = Array.from({ length: amount }, () => makeGlassDrop(true));
+      buildings = [];
+      cityLights = Array.from({ length: Math.min(44, Math.max(22, Math.round(rainWidth / 26))) }, () => ({
+        x: Math.random() * rainWidth,
+        y: rainHeight * (.2 + Math.random() * .46),
+        radius: 2 + Math.random() * 10,
+        warmth: Math.random() < .68
+      }));
+      let x = -30;
+      while (x < rainWidth + 30) {
+        const width = 55 + Math.random() * 120;
+        const height = rainHeight * (.16 + Math.random() * .25);
+        buildings.push({ x, width, height, tone: 44 + Math.random() * 30, floors: 3 + Math.floor(Math.random() * 5) });
+        x += width * (.74 + Math.random() * .2);
+      }
+      drawWindow(false, 0);
+    }
+
+    function drawGeneratedCity(time) {
+      const horizon = rainHeight * .64;
+      const sky = rainContext.createLinearGradient(0, 0, 0, horizon);
+      sky.addColorStop(0, '#879496');
+      sky.addColorStop(.7, '#a6b1ad');
+      sky.addColorStop(1, '#c0c4bb');
+      rainContext.fillStyle = sky;
+      rainContext.fillRect(0, 0, rainWidth, rainHeight);
+
+      const distantGlow = rainContext.createRadialGradient(rainWidth * .52, horizon * .72, 0, rainWidth * .52, horizon * .72, rainWidth * .56);
+      distantGlow.addColorStop(0, 'rgba(239, 225, 194, .42)');
+      distantGlow.addColorStop(1, 'rgba(239, 225, 194, 0)');
+      rainContext.fillStyle = distantGlow;
+      rainContext.fillRect(0, 0, rainWidth, horizon);
+
+      rainContext.save();
+      rainContext.filter = 'blur(6px)';
+      buildings.forEach((building, index) => {
+        const top = horizon - building.height;
+        rainContext.fillStyle = `rgba(${building.tone}, ${building.tone + 9}, ${building.tone + 10}, .76)`;
+        rainContext.fillRect(building.x, top, building.width, building.height + 14);
+        rainContext.fillStyle = 'rgba(39, 50, 53, .18)';
+        rainContext.fillRect(building.x + building.width * .12, top + 8, building.width * .16, building.height);
+        const columns = Math.max(2, Math.floor(building.width / 19));
+        for (let row = 0; row < building.floors; row++) {
+          for (let col = 0; col < columns; col++) {
+            if ((row * 3 + col + index) % 5 === 0) continue;
+            const light = (row + col + index) % 4 === 0;
+            rainContext.fillStyle = light ? 'rgba(255, 219, 158, .25)' : 'rgba(37, 53, 58, .2)';
+            rainContext.fillRect(building.x + 8 + col * 17, top + 13 + row * 19, 6, 9);
+          }
+        }
+      });
+
+      rainContext.fillStyle = 'rgba(67, 77, 76, .68)';
+      rainContext.beginPath();
+      rainContext.moveTo(0, horizon + 2);
+      rainContext.lineTo(rainWidth, horizon - 5);
+      rainContext.lineTo(rainWidth, rainHeight);
+      rainContext.lineTo(0, rainHeight);
+      rainContext.closePath();
+      rainContext.fill();
+
+      const road = rainContext.createLinearGradient(0, horizon, 0, rainHeight);
+      road.addColorStop(0, 'rgba(83, 91, 87, .82)');
+      road.addColorStop(1, 'rgba(37, 47, 51, .88)');
+      rainContext.fillStyle = road;
+      rainContext.fillRect(0, horizon, rainWidth, rainHeight - horizon);
+
+      for (let line = 0; line < 13; line++) {
+        const y = horizon + (line + 1) * (rainHeight - horizon) / 15;
+        const wobble = Math.sin(time * .5 + line * 2) * 3;
+        rainContext.beginPath();
+        rainContext.moveTo(rainWidth * .24 + wobble, y);
+        rainContext.lineTo(rainWidth * .76 - wobble, y + Math.sin(line) * 2);
+        rainContext.strokeStyle = line % 3 === 0 ? 'rgba(231, 224, 194, .12)' : 'rgba(184, 208, 210, .07)';
+        rainContext.lineWidth = 1 + line * .12;
+        rainContext.stroke();
+      }
+      rainContext.restore();
+
+    }
+
+    function drawCity(time) {
+      if (sceneImage.complete && sceneImage.naturalWidth > 0) {
+        const scale = Math.max(rainWidth / sceneImage.naturalWidth, rainHeight / sceneImage.naturalHeight);
+        const width = sceneImage.naturalWidth * scale;
+        const height = sceneImage.naturalHeight * scale;
+        rainContext.save();
+        rainContext.filter = 'blur(2.4px)';
+        rainContext.drawImage(sceneImage, (rainWidth - width) / 2, (rainHeight - height) / 2, width, height);
+        rainContext.restore();
+      } else {
+        drawGeneratedCity(time);
+      }
+
+      drawCityLights(time);
+      drawVehicleLights(time);
+      drawScooter(rainHeight * .64 - 8);
+    }
+
+    function passingLight(time) {
+      const cycle = ((time % 15) + 15) % 15;
+      const phase = cycle / 15;
+      if (phase >= .1 && phase < .4) {
+        const progress = (phase - .1) / .3;
+        return { x: -60 + progress * (rainWidth + 120), y: rainHeight * .635, intensity: Math.sin(progress * Math.PI), direction: 1 };
+      }
+      if (phase >= .62 && phase < .84) {
+        const progress = (phase - .62) / .22;
+        return { x: rainWidth + 60 - progress * (rainWidth + 120), y: rainHeight * .65, intensity: Math.sin(progress * Math.PI), direction: -1 };
+      }
+      return null;
+    }
+
+    function drawCityLights(time) {
+      cityLights.forEach((light, index) => {
+        const twinkle = .72 + .28 * Math.sin(time * .8 + index * 2.1);
+        const color = light.warmth ? '255, 190, 112' : '203, 228, 239';
+        const glow = rainContext.createRadialGradient(light.x, light.y, 0, light.x, light.y, light.radius * 4);
+        glow.addColorStop(0, `rgba(${color}, ${.3 * twinkle})`);
+        glow.addColorStop(1, `rgba(${color}, 0)`);
+        rainContext.fillStyle = glow;
+        rainContext.fillRect(light.x - light.radius * 4, light.y - light.radius * 4, light.radius * 8, light.radius * 8);
+        rainContext.beginPath();
+        rainContext.arc(light.x, light.y, Math.max(.8, light.radius * .18), 0, Math.PI * 2);
+        rainContext.fillStyle = `rgba(${color}, ${.55 * twinkle})`;
+        rainContext.fill();
+      });
+    }
+
+    function drawVehicleLights(time) {
+      const light = passingLight(time);
+      if (!light || light.intensity < .02) return;
+      const y = light.y;
+      const spread = Math.max(5, Math.min(11, rainWidth * .008));
+      rainContext.save();
+      rainContext.globalCompositeOperation = 'screen';
+
+      const reflection = rainContext.createLinearGradient(light.x - rainWidth * .2, y, light.x + rainWidth * .2, y);
+      reflection.addColorStop(0, 'rgba(255, 217, 159, 0)');
+      reflection.addColorStop(.5, `rgba(255, 224, 176, ${.11 * light.intensity})`);
+      reflection.addColorStop(1, 'rgba(255, 217, 159, 0)');
+      rainContext.fillStyle = reflection;
+      rainContext.beginPath();
+      rainContext.moveTo(light.x - spread, y);
+      rainContext.lineTo(light.x - rainWidth * .2, rainHeight);
+      rainContext.lineTo(light.x + rainWidth * .2, rainHeight);
+      rainContext.lineTo(light.x + spread, y);
+      rainContext.closePath();
+      rainContext.fill();
+
+      [-spread, spread].forEach((offset) => {
+        const x = light.x + offset;
+        const halo = rainContext.createRadialGradient(x, y, 0, x, y, Math.max(40, rainWidth * .09));
+        halo.addColorStop(0, `rgba(255, 249, 226, ${.88 * light.intensity})`);
+        halo.addColorStop(.12, `rgba(255, 210, 141, ${.48 * light.intensity})`);
+        halo.addColorStop(1, 'rgba(255, 190, 112, 0)');
+        rainContext.fillStyle = halo;
+        rainContext.fillRect(x - rainWidth * .1, y - rainWidth * .1, rainWidth * .2, rainWidth * .2);
+        rainContext.beginPath();
+        rainContext.arc(x, y, 2.2, 0, Math.PI * 2);
+        rainContext.fillStyle = `rgba(255, 255, 240, ${light.intensity})`;
+        rainContext.fill();
+      });
+      rainContext.restore();
+    }
+
+    function drawScooter(y) {
+      const scale = Math.max(.42, Math.min(1, rainWidth / 1150));
+      const x = scooterX;
+      rainContext.save();
+      rainContext.filter = 'blur(1.4px)';
+      rainContext.globalAlpha = .68;
+      rainContext.strokeStyle = '#273437';
+      rainContext.fillStyle = '#273437';
+      rainContext.lineWidth = 2.4 * scale;
+      const wheelY = y + 14 * scale;
+      [x + 10 * scale, x + 49 * scale].forEach((wheelX) => {
+        rainContext.beginPath();
+        rainContext.arc(wheelX, wheelY, 5.5 * scale, 0, Math.PI * 2);
+        rainContext.fill();
+      });
+      rainContext.beginPath();
+      rainContext.moveTo(x + 10 * scale, wheelY);
+      rainContext.lineTo(x + 23 * scale, y + 8 * scale);
+      rainContext.lineTo(x + 41 * scale, y + 9 * scale);
+      rainContext.lineTo(x + 49 * scale, wheelY);
+      rainContext.stroke();
+      rainContext.beginPath();
+      rainContext.moveTo(x + 18 * scale, y + 8 * scale);
+      rainContext.quadraticCurveTo(x + 25 * scale, y + 2 * scale, x + 39 * scale, y + 7 * scale);
+      rainContext.lineTo(x + 45 * scale, y + 10 * scale);
+      rainContext.lineTo(x + 30 * scale, y + 12 * scale);
+      rainContext.closePath();
+      rainContext.fill();
+      rainContext.beginPath();
+      rainContext.arc(x + 32 * scale, y - 7 * scale, 4.2 * scale, 0, Math.PI * 2);
+      rainContext.fill();
+      rainContext.beginPath();
+      rainContext.moveTo(x + 29 * scale, y - 3 * scale);
+      rainContext.lineTo(x + 25 * scale, y + 6 * scale);
+      rainContext.lineTo(x + 38 * scale, y + 7 * scale);
+      rainContext.moveTo(x + 26 * scale, y + 5 * scale);
+      rainContext.lineTo(x + 20 * scale, y + 12 * scale);
+      rainContext.moveTo(x + 37 * scale, y + 6 * scale);
+      rainContext.lineTo(x + 43 * scale, y + 12 * scale);
+      rainContext.stroke();
+      rainContext.restore();
+    }
+
+    function drawGlassDrops(time) {
+      const light = passingLight(time);
+      glassDrops.forEach((drop) => {
+        let reflection = 0;
+        if (light) {
+          const across = Math.max(0, 1 - Math.abs(drop.x - light.x) / (rainWidth * .24));
+          const height = Math.max(0, 1 - Math.abs(drop.y - light.y) / (rainHeight * .72));
+          reflection = across * height * light.intensity;
+        }
+        if (drop.trail > 0 && drop.radius > 2) {
+          const trail = rainContext.createLinearGradient(drop.x, drop.y - drop.trail, drop.x, drop.y);
+          trail.addColorStop(0, 'rgba(238, 247, 247, 0)');
+          trail.addColorStop(.72, 'rgba(217, 235, 239, .2)');
+          trail.addColorStop(1, 'rgba(62, 82, 91, .34)');
+          rainContext.beginPath();
+          rainContext.moveTo(drop.x - drop.radius * .35, drop.y - drop.trail);
+          rainContext.quadraticCurveTo(drop.x + drop.drift * 8, drop.y - drop.trail * .45, drop.x, drop.y);
+          rainContext.strokeStyle = trail;
+          rainContext.lineWidth = Math.max(.7, drop.radius * .55);
+          rainContext.stroke();
+        }
+
+        rainContext.save();
+        rainContext.translate(drop.x, drop.y);
+        rainContext.scale(1, drop.tall);
+        const glass = rainContext.createRadialGradient(-drop.radius * .35, -drop.radius * .4, .2, 0, 0, drop.radius * 1.5);
+        glass.addColorStop(0, `rgba(255, 255, 255, ${.82 + reflection * .16})`);
+        glass.addColorStop(.22, `rgba(234, 246, 247, ${.58 + reflection * .28})`);
+        glass.addColorStop(.68, 'rgba(154, 184, 193, .28)');
+        glass.addColorStop(1, 'rgba(45, 64, 73, .48)');
+        rainContext.beginPath();
+        rainContext.ellipse(0, 0, drop.radius, drop.radius, 0, 0, Math.PI * 2);
+        rainContext.fillStyle = glass;
+        rainContext.fill();
+        rainContext.strokeStyle = `rgba(255, 250, 231, ${(drop.radius > 3 ? .55 : .28) + reflection * .4})`;
+        rainContext.lineWidth = .65;
+        rainContext.stroke();
+        rainContext.beginPath();
+        rainContext.ellipse(-drop.radius * .28, -drop.radius * .32, Math.max(.35, drop.radius * .16), Math.max(.55, drop.radius * .25), -.35, 0, Math.PI * 2);
+        rainContext.fillStyle = `rgba(255, 255, 255, ${.72 + reflection * .28})`;
+        rainContext.fill();
+        if (reflection > .22 && drop.radius > 1.4) {
+          rainContext.beginPath();
+          rainContext.ellipse(0, drop.radius * .5, drop.radius * .46, drop.radius * .13, 0, 0, Math.PI * 2);
+          rainContext.fillStyle = `rgba(255, 226, 177, ${reflection * .52})`;
+          rainContext.fill();
+        }
+        rainContext.restore();
+
+        drop.y += drop.speed;
+        drop.x += drop.drift;
+        if (drop.y - drop.trail > rainHeight + drop.radius) Object.assign(drop, makeGlassDrop());
+      });
+    }
+
+    function drawWindow(animate = true, time = performance.now()) {
+      rainContext.clearRect(0, 0, rainWidth, rainHeight);
+      drawCity(time * .001);
+
+      const fog = rainContext.createLinearGradient(0, 0, rainWidth, rainHeight);
+      fog.addColorStop(0, 'rgba(236, 244, 242, .22)');
+      fog.addColorStop(.55, 'rgba(222, 235, 236, .12)');
+      fog.addColorStop(1, 'rgba(228, 237, 233, .22)');
+      rainContext.fillStyle = fog;
+      rainContext.fillRect(0, 0, rainWidth, rainHeight);
+      const condensation = rainContext.createRadialGradient(rainWidth * .73, rainHeight * .32, 0, rainWidth * .73, rainHeight * .32, rainWidth * .52);
+      condensation.addColorStop(0, 'rgba(241, 247, 244, .24)');
+      condensation.addColorStop(1, 'rgba(241, 247, 244, 0)');
+      rainContext.fillStyle = condensation;
+      rainContext.fillRect(0, 0, rainWidth, rainHeight);
+      drawGlassDrops(time * .001);
+
+      if (animate && !reducedMotion) {
+        const delta = lastFrame ? Math.min(40, time - lastFrame) : 16;
+        lastFrame = time;
+        scooterX += Math.max(.7, rainWidth * .0012) * delta / 16;
+        if (scooterX > rainWidth + 100) scooterX = -120;
+        requestAnimationFrame((nextTime) => drawWindow(true, nextTime));
+      }
+    }
+
+    window.addEventListener('resize', resizeRain, { passive: true });
+    resizeRain();
+    if (!reducedMotion) requestAnimationFrame((time) => drawWindow(true, time));
+
+    const archiveTags = {
+      '01': [
+        { name: 'いつ', value: '8月' },
+        { name: '誰と', value: '家族旅' }
+      ],
+      '02': [],
+      '03': [
+        { name: '場所', value: '寧夏夜市' }
+      ],
+      '04': [
+        { name: '場所', value: '九份' }
+      ],
+      '05': []
+    };
+
+    document.querySelectorAll('.item[data-record]').forEach((item) => {
+      const tags = archiveTags[item.dataset.record] || [];
+      const list = item.querySelector('.tags');
+      tags.forEach(({ name, value }) => {
+        const tag = document.createElement('li');
+        tag.className = 'tag';
+        const key = document.createElement('span');
+        key.className = 'tag-key';
+        key.textContent = name;
+        const text = document.createElement('span');
+        text.textContent = value;
+        tag.append(key, text);
+        list.append(tag);
+      });
+    });
+
+    const viewer = document.querySelector('#viewer');
+    const viewerImage = document.querySelector('#viewer-image');
+    const closeButton = document.querySelector('.close');
+
+    document.querySelectorAll('.photo-button').forEach((button) => {
+      button.addEventListener('click', () => {
+        viewerImage.src = button.dataset.photo;
+        viewerImage.alt = button.querySelector('img').alt;
+        viewer.showModal();
+      });
+    });
+
+    closeButton.addEventListener('click', () => viewer.close());
+    viewer.addEventListener('click', (event) => {
+      if (event.target === viewer) viewer.close();
+    });
+    viewer.addEventListener('close', () => { viewerImage.removeAttribute('src'); });
+  </script>
+</body>
+</html>
